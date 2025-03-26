@@ -33,8 +33,8 @@ model=nfet_01v8
 spiceprefix=X
 }
 C {ammeter.sym} 40 -85 0 0 {name=Vmeas savecurrent=true spice_ignore=0}
-C {sky130_fd_pr/corner.sym} -70 -425 0 0 {name=CORNER only_toplevel=false corner=tt}
-C {devices/code_shown.sym} -712.5 -758.75 0 0 {name="GMOVERID BENCH"
+C {sky130_fd_pr/corner.sym} -170 -605 0 0 {name=CORNER only_toplevel=false corner=tt}
+C {devices/code_shown.sym} -762.5 -828.75 0 0 {name="GMOVERID BENCH"
 only_toplevel=true
 value="
 .options savecurrents
@@ -48,26 +48,18 @@ value="
 * Control block to sweep Vg for every L and Vd
 .control
 
-compose lvalues start=0.2 stop=0.6 step=0.2
+compose lvalues start=0.2 stop=1.0 step=0.2
 
-set curplot = new
-set dcplot = $curplot
-
-let i = 0
+set plotgmid = ' '
+set plotft = ' '
+set plotf3db = ' '
+set plotav = ' '
+set plotcd = ' '
 
 foreach L $&lvalues
   alterparam L = $L
-
-  reset
-
-  save all
-  save all @m.xm2.msky130_fd_pr__nfet_01v8[gds]
-  save all @m.xm2.msky130_fd_pr__nfet_01v8[cgg]
-  save all @m.xm2.msky130_fd_pr__nfet_01v8[cds]
-  save all @m.xm2.msky130_fd_pr__nfet_01v8[gm]
-  save all @m.xm2.msky130_fd_pr__nfet_01v8[W] 
-
-  dc V1 0 1.5 50m
+  reset  
+  dc V1 0 1.5 10m
 
   * Extract device parameters
   let id = i(vmeas)
@@ -84,27 +76,34 @@ foreach L $&lvalues
   let av = gm / gds
   let cd = id / W
 
+  set plotgmid = ( $plotgmid \{$curplot\}.gmoverid ) 
+  set plotft = ( $plotft \{$curplot\}.ft ) 
+  set plotf3db = ( $plotf3db \{$curplot\}.f3db ) 
+  set plotav = ( $plotav \{$curplot\}.av ) 
+  set plotcd = ( $plotcd \{$curplot\}.cd ) 
+
   save gmoverid ft f3db av cd
-
-  * store
-  *let \{$p1\}.gmoverid[\{$&i\}] = gmoverid
-
-  * set aux = $curplot
-  * set cutplot = $dcplot
-  * let 'db gmoverid L: $L' += db(\{$aux\}.gm)
-
   write gmid.raw
   set appendwrite
 
-  let i = i + 1
 end
 
-* set curplot = $dcplot
-* plot all
-
-plot dc1.ft dc2.ft dc3.ft vs gmoverid ylog
-plot dc1.f3db dc2.f3db dc3.f3db vs gmoverid ylog
-plot dc1.av dc2.av dc3.av vs gmoverid
+plot $plotft vs gmoverid ylog
+plot $3dbplot vs gmoverid ylog
+plot $plotav vs gmoverid
+plot $plotcd vs gmoverid
 
 .endc
+"}
+C {devices/code_shown.sym} -162.5 -828.75 0 0 {name="SAVE SETTINGS"
+only_toplevel=true
+value="
+.options savecurrents
+.save all
+.save Vd Vg
+.save @m.xm2.msky130_fd_pr__nfet_01v8[gds]
+.save @m.xm2.msky130_fd_pr__nfet_01v8[cgg]
+.save @m.xm2.msky130_fd_pr__nfet_01v8[cds]
+.save @m.xm2.msky130_fd_pr__nfet_01v8[gm]
+.save @m.xm2.msky130_fd_pr__nfet_01v8[W] 
 "}
