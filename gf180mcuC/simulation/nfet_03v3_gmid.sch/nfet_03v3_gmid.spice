@@ -1,0 +1,90 @@
+** sch_path: /foss/designs/acc/Analog-Design-Toolkit/gf180mcuC/nfet_03v3_gmid.sch
+**.subckt nfet_03v3_gmid
+XM1 net1 Vg GND GND nfet_03v3 L=L W=0.22u nf=1 ad='int((nf+1)/2) * W/nf * 0.18u' as='int((nf+2)/2) * W/nf * 0.18u' pd='2*int((nf+1)/2) * (W/nf + 0.18u)'
++ ps='2*int((nf+2)/2) * (W/nf + 0.18u)' nrd='0.18u / W' nrs='0.18u / W' sa=0 sb=0 sd=0 m=1
+V1 Vg GND Vg
+V2 Vd GND Vd
+Vmeas Vd net1 0
+.save i(vmeas)
+**** begin user architecture code
+
+
+.options savecurrents
+.save all
+
+* Parameters to sweep
+.param L = 0.3u
+.param Vd = 3.3
+.param Vg = 0
+
+* Control block to sweep Vg for every L and Vd
+.control
+
+compose lvalues start=0.3u stop=1.8u step=0.3u
+
+set plotgmid = ' '
+set plotft = ' '
+set plotf3db = ' '
+set plotav = ' '
+set plotcd = ' '
+
+foreach L $&lvalues
+  alterparam L = $L
+  reset
+  dc V1 0 3.3 0.01
+
+  * Extract device parameters
+  let id = i(vmeas)
+  let W = @m.xm1.m0[W]
+  let gm = @m.xm1.m0[gm]
+  let cgg = @m.xm1.m0[cgg]
+  let gds = @m.xm1.m0[gds]
+  let cds = @m.xm1.m0[cds]
+
+  * Compute metrics
+  let gmoverid = deriv(ln(id))
+  let ft = (gm / cgg) * (1 / 6.28318530718)
+  let f3db = (gds / cds) * ( 1 / 6.28318530718)
+  let av = gm / gds
+  let cd = id / W
+
+  set plotgmid = ( $plotgmid {$curplot}.gmoverid )
+  set plotft = ( $plotft {$curplot}.ft )
+  set plotf3db = ( $plotf3db {$curplot}.f3db )
+  set plotav = ( $plotav {$curplot}.av )
+  set plotcd = ( $plotcd {$curplot}.cd )
+
+  save gmoverid ft f3db av cd
+  write gmid.raw
+  set appendwrite
+
+end
+
+plot $plotft vs gmoverid ylog
+plot $3dbplot vs gmoverid ylog
+plot $plotav vs gmoverid
+plot $plotcd vs gmoverid
+
+.endc
+
+
+
+
+.options savecurrents
+.save all
+.save Vd Vg
+.save @m.xm1.m0[gds]
+.save @m.xm1.m0[cgg]
+.save @m.xm1.m0[cds]
+.save @m.xm1.m0[gm]
+.save @m.xm1.m0[W]
+
+
+
+.include /foss/pdks/gf180mcuC/libs.tech/ngspice/design.ngspice
+.lib /foss/pdks/gf180mcuC/libs.tech/ngspice/sm141064.ngspice typical
+
+**** end user architecture code
+**.ends
+.GLOBAL GND
+.end
